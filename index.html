@@ -444,6 +444,21 @@
       gap: 6px;
     }
 
+    .service-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--blue);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(26,47,90,0.25);
+      padding-bottom: 2px;
+      transition: border-color 0.2s;
+    }
+    .service-link:hover { border-color: var(--blue); }
+
     .tag {
       font-size: 11px;
       font-weight: 500;
@@ -947,7 +962,7 @@
       <div class="services-header">
         <p class="section-label">Методы лечения</p>
         <h2 class="section-title">Как мы лечим варикоз</h2>
-        <p class="section-sub">Три современных метода — подберём подходящий на консультации с УЗИ.</p>
+        <p class="section-sub">Четыре метода — подберём подходящий на консультации с УЗИ.</p>
       </div>
       <div class="services-grid">
 
@@ -958,12 +973,13 @@
             </svg>
           </div>
           <h3>РЧА / ЭВЛК — закрытие вены</h3>
-          <p>Два метода — один принцип: закрыть больную вену изнутри через прокол 2 мм. РЧА (радиочастота) или ЭВЛК (лазер) — подбираем под ваш случай. Эффективность РЧА — более 93–95%, ЭВЛК — до 97% при длине волны 1470 нм. Данные клинических исследований, 5 лет наблюдения.</p>
+          <p>Два метода — один принцип: закрыть больную вену изнутри через прокол 2 мм. РЧА (радиочастота) или ЭВЛК (лазер) — подбираем под ваш случай. Эффективность РЧА — 94–96%, ЭВЛК — 95–97% по данным клинических исследований 3–5 лет наблюдения.</p>
           <div class="service-tags">
             <span class="tag">прокол 2 мм</span>
             <span class="tag">30 минут</span>
             <span class="tag">местная анестезия</span>
           </div>
+          <a href="rcha-evlk.html" class="service-link">Подробнее об операции →</a>
         </div>
 
         <div class="service-card">
@@ -974,12 +990,13 @@
             </svg>
           </div>
           <h3>Склеротерапия</h3>
-          <p>Химическая облитерация вены — препарат вводится через тонкую иглу. Идеально для сосудистых звёздочек и небольших варикозных вен.</p>
+          <p>Химическая облитерация вены — препарат вводится через тонкую иглу. Пенная форма (foam-form) под контролем УЗИ для перфорантных и ретикулярных вен.</p>
           <div class="service-tags">
             <span class="tag">без операции</span>
             <span class="tag">амбулаторно</span>
-            <span class="tag">быстрый результат</span>
+            <span class="tag">echo-guided foam</span>
           </div>
+          <a href="skleroterapiya.html" class="service-link">Подробнее о методе →</a>
         </div>
 
         <div class="service-card">
@@ -990,12 +1007,30 @@
             </svg>
           </div>
           <h3>Минифлебэктомия</h3>
-          <p>Удаление варикозных притоков через проколы 1–2 мм. Без разрезов, без швов, без шрамов. Часто выполняется вместе с РЧА.</p>
+          <p>Удаление варикозных притоков через проколы 1–2 мм. Без разрезов, без швов, без шрамов. Часто выполняется вместе с РЧА в один этап.</p>
           <div class="service-tags">
             <span class="tag">без шрамов</span>
             <span class="tag">1–2 мм проколы</span>
             <span class="tag">комбинируется с РЧА/ЭВЛК</span>
           </div>
+          <a href="miniflebektomiya.html" class="service-link">Подробнее об операции →</a>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="12" cy="12" r="2"/>
+              <path d="M12 2C8 2 4 6 4 10c0 5 8 12 8 12s8-7 8-12c0-4-4-8-8-8z"/>
+            </svg>
+          </div>
+          <h3>Сосудистые звёздочки</h3>
+          <p>Склеротерапия телеангиэктазий и ретикулярных вен. Жидкая и пенная форма — под вид сосуда. Процедура 10–15 минут, без госпитализации.</p>
+          <div class="service-tags">
+            <span class="tag">10–15 минут</span>
+            <span class="tag">без госпитализации</span>
+            <span class="tag">жидкая и foam-form</span>
+          </div>
+          <a href="sosudistye-zvezdochki.html" class="service-link">Подробнее о процедуре →</a>
         </div>
 
       </div>
