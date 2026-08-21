@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Мой маршрут лечения</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f7fa;
+    --card: #ffffff;
+    --border: #e8ecf0;
+    --text: #1a1a2e;
+    --text2: #6b7280;
+    --accent: #2D7DD2;
+    --accent-light: #e8f1fb;
+    --success: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --radius: 16px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --bg2: #1a1d27;
+      --card: #1e2130;
+      --border: #2d3148;
+      --text: #f0f2f8;
+      --text2: #8b93a7;
+      --accent-light: #1a2d4a;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Navigation */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    z-index: 100;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 6px 0; cursor: pointer;
+    color: var(--text2); font-size: 11px; font-weight: 500;
+    transition: color .2s;
+  }
+  .nav-item.active { color: var(--accent); }
+  .nav-item svg { width: 24px; height: 24px; }
+
+  /* Screens */
+  .screen { display: none; padding: 20px 16px 100px; min-height: 100vh; }
+  .screen.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Buttons */
+  .btn {
+    display: block; width: 100%; padding: 16px;
+    border: none; border-radius: 12px; cursor: pointer;
+    font-size: 16px; font-weight: 600; text-align: center;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--accent-light); color: var(--accent); }
+  .btn + .btn { margin-top: 10px; }
+
+  /* Stage progress */
+  .stage-header { margin-bottom: 8px; }
+  .stage-label { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .progress-bar { height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s ease; }
+  .stage-steps { display: flex; gap: 6px; margin-top: 10px; }
+  .stage-dot {
+    flex: 1; height: 6px; border-radius: 3px;
+    background: var(--bg2); transition: background .3s;
+  }
+  .stage-dot.done { background: var(--success); }
+  .stage-dot.current { background: var(--accent); }
+
+  /* Greeting */
+  .greeting { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .diagnosis-badge {
+    display: inline-block;
+    background: var(--accent-light); color: var(--accent);
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; margin-bottom: 16px;
+  }
+
+  /* Recommendations */
+  .rec-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 18px;
+  }
+  .rec-text { font-size: 15px; line-height: 1.5; padding-top: 6px; }
+
+  /* Chat */
+  .chat-messages {
+    min-height: 200px; margin-bottom: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .msg { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 15px; line-height: 1.5; }
+  .msg-user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg-bot { background: var(--bg2); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .chat-input-row { display: flex; gap: 10px; align-items: flex-end; }
+  .chat-input {
+    flex: 1; padding: 14px 16px; border: 1.5px solid var(--border);
+    border-radius: 12px; font-size: 15px; background: var(--bg);
+    color: var(--text); resize: none; outline: none; min-height: 52px;
+    font-family: inherit;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .send-btn {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: var(--accent); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: opacity .15s;
+  }
+  .send-btn:disabled { opacity: 0.5; }
+  .doctor-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; background: var(--bg2);
+    border-radius: 12px; margin-top: 12px; cursor: pointer;
+    text-decoration: none; color: var(--text);
+  }
+  .doctor-link:active { opacity: 0.8; }
+
+  /* Profile */
+  .profile-avatar {
+    width: 72px; height: 72px; border-radius: 36px;
+    background: var(--accent-light); display: flex;
+    align-items: center; justify-content: center;
+    font-size: 32px; margin: 0 auto 12px;
+  }
+  .profile-name { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+  .profile-sub { font-size: 14px; color: var(--text2); text-align: center; margin-bottom: 20px; }
+  .info-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-icon { font-size: 20px; width: 32px; text-align: center; }
+  .info-label { font-size: 12px; color: var(--text2); }
+  .info-value { font-size: 15px; font-weight: 500; margin-top: 1px; }
+
+  /* Loading */
+  .loader { text-align: center; padding: 40px; color: var(--text2); }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .8s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .section-title { font-size: 13px; color: var(--text2); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .stage-name-big { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .stage-desc { font-size: 14px; color: var(--text2); margin-bottom: 16px; }
+  .warning-box {
+    background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px;
+    padding: 12px 14px; font-size: 13px; color: #92400e; margin-top: 16px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+</style>
+</head>
+<body>
+
+<!-- Screen: Home -->
+<div id="screen-home" class="screen active">
+  <div id="home-loader" class="loader">
+    <div class="spinner"></div>
+    <div>Загружаю ваш маршрут...</div>
+  </div>
+  <div id="home-content" style="display:none">
+    <div style="margin-bottom:8px">
+      <div class="greeting">Добрый день, <span id="h-name">—</span> 👋</div>
+    </div>
+    <div class="diagnosis-badge" id="h-diagnosis">—</div>
+
+    <div class="card">
+      <div class="section-title">Текущий этап</div>
+      <div class="stage-name-big" id="h-stage-name">—</div>
+      <div class="stage-desc" id="h-stage-desc"></div>
+      <div class="stage-label">Прогресс: этап <span id="h-stage-num">1</span> из <span id="h-stage-total">4</span></div>
+      <div class="progress-bar" style="margin-bottom:10px">
+        <div class="progress-fill" id="h-progress" style="width:25%"></div>
+      </div>
+      <div class="stage-steps" id="h-dots"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="showScreen('recs')">
+      📋 Рекомендации на сейчас
+    </button>
+    <button class="btn btn-secondary" onclick="showScreen('chat')">
+      💬 Задать вопрос врачу AI
+    </button>
+
+    <a class="doctor-link" href="https://t.me/dr_podolskiy" target="_blank">
+      <span style="font-size:24px">👨‍⚕️</span>
+      <div>
+        <div style="font-weight:600;font-size:15px">Доктор Подольский</div>
+        <div style="font-size:13px;color:var(--text2)">Написать напрямую в Telegram</div>
+      </div>
+      <span style="margin-left:auto;color:var(--text2)">›</span>
+    </a>
+  </div>
+</div>
+
+<!-- Screen: Recommendations -->
+<div id="screen-recs" class="screen">
+  <div id="recs-loader" class="loader">
+    <div class="spinner"></div>
+    <div>Загружаю рекомендации...</div>
+  </div>
+  <div id="recs-content" style="display:none">
+    <div class="card" style="margin-bottom:12px">
+      <div class="section-title">Этап <span id="r-num">—</span></div>
+      <div class="stage-name-big" id="r-name">—</div>
+      <div class="stage-desc" id="r-desc"></div>
+    </div>
+    <div class="card">
+      <div id="recs-list"></div>
+    </div>
+    <div class="warning-box">
+      <span>⚠️</span>
+      <span>Если что-то вас беспокоит — не ждите. Свяжитесь с врачом напрямую.</span>
+    </div>
+    <a class="doctor-link" href="https://t.me/dr_podolskiy" target="_blank" style="margin-top:12px">
+      <span style="font-size:20px">📞</span>
+      <span style="font-size:15px;font-weight:500">Написать врачу</span>
+      <span style="margin-left:auto;color:var(--text2)">›</span>
+    </a>
+  </div>
+</div>
+
+<!-- Screen: Chat -->
+<div id="screen-chat" class="screen">
+  <div class="card" style="margin-bottom:12px;padding:14px 16px">
+    <div style="font-size:14px;color:var(--text2);line-height:1.4">
+      🤖 AI отвечает только по материалам вашего диагноза и этапа лечения.
+    </div>
+  </div>
+  <div class="card">
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg msg-bot">Здравствуйте! Задайте вопрос о вашем лечении — я отвечу по рекомендациям вашего врача.</div>
+    </div>
+    <div class="chat-input-row">
+      <textarea id="chat-input" class="chat-input" placeholder="Ваш вопрос..." rows="1"
+        oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">
+        <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <a class="doctor-link" href="https://t.me/dr_podolskiy" target="_blank">
+    <span style="font-size:20px">👨‍⚕️</span>
+    <span style="font-size:15px;font-weight:500">Вопрос не по теме? Написать врачу</span>
+    <span style="margin-left:auto;color:var(--text2)">›</span>
+  </a>
+</div>
+
+<!-- Screen: Profile -->
+<div id="screen-profile" class="screen">
+  <div class="card" style="text-align:center;padding:24px 20px">
+    <div class="profile-avatar">👤</div>
+    <div class="profile-name" id="p-name">—</div>
+    <div class="profile-sub" id="p-diag">—</div>
+  </div>
+  <div class="card">
+    <div class="info-row">
+      <span class="info-icon">🏥</span>
+      <div>
+        <div class="info-label">Врач</div>
+        <div class="info-value">Подольский Михаил Юрьевич</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-icon">📍</span>
+      <div>
+        <div class="info-label">Клиника</div>
+        <div class="info-value">РЖД-Медицина им. Семашко</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <span class="info-icon">📅</span>
+      <div>
+        <div class="info-label">Текущий этап</div>
+        <div class="info-value" id="p-stage">—</div>
+      </div>
+    </div>
+    <div class="info-row" id="p-opdate-row" style="display:none">
+      <span class="info-icon">🗓</span>
+      <div>
+        <div class="info-label">Дата операции</div>
+        <div class="info-value" id="p-opdate">—</div>
+      </div>
+    </div>
+  </div>
+  <a class="doctor-link" href="https://t.me/dr_podolskiy" target="_blank">
+    <span style="font-size:20px">💬</span>
+    <span style="font-size:15px;font-weight:500">Написать доктору Подольскому</span>
+    <span style="margin-left:auto;color:var(--text2)">›</span>
+  </a>
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="nav">
+  <div class="nav-item active" onclick="showScreen('home')" id="nav-home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Главная
+  </div>
+  <div class="nav-item" onclick="showScreen('recs')" id="nav-recs">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+    </svg>
+    Рекомендации
+  </div>
+  <div class="nav-item" onclick="showScreen('chat')" id="nav-chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    </svg>
+    AI-чат
+  </div>
+  <div class="nav-item" onclick="showScreen('profile')" id="nav-profile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+    Профиль
+  </div>
+</nav>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+// Получаем telegram_id из WebApp или используем тестовый
+const TELEGRAM_ID = tg?.initDataUnsafe?.user?.id || 123456789;
+const API = 'https://api.varikoz-moskva.ru/api';
+
+const STAGE_ICONS = ['🏥', '⚕️', '🚶', '🏃', '❓'];
+
+let patientData = null;
+let recsLoaded = false;
+
+// ── Navigation ─────────────────────────────────────────
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+
+  if (name === 'recs' && !recsLoaded) loadRecs();
+  window.scrollTo(0, 0);
+}
+
+// ── Load patient data ─────────────────────────────────
+
+async function loadHome() {
+  try {
+    const res = await fetch(`${API}/patient/${TELEGRAM_ID}`);
+    if (!res.ok) {
+      document.getElementById('home-loader').innerHTML =
+        '<div style="color:var(--danger);text-align:center;padding:40px">⚠️ Ваш профиль не найден.<br><br>Обратитесь к врачу для подключения.</div>';
+      return;
+    }
+    patientData = await res.json();
+    renderHome(patientData);
+  } catch(e) {
+    document.getElementById('home-loader').innerHTML =
+      '<div style="color:var(--danger);text-align:center;padding:40px">Нет связи с сервером</div>';
+  }
+}
+
+function renderHome(d) {
+  document.getElementById('home-loader').style.display = 'none';
+  document.getElementById('home-content').style.display = 'block';
+
+  // Берём имя из Telegram или из БД
+  const firstName = tg?.initDataUnsafe?.user?.first_name || d.name.split(' ')[0];
+  document.getElementById('h-name').textContent = firstName;
+  document.getElementById('h-diagnosis').textContent = d.diagnosis;
+
+  const stageName = getStageShortName(d.current_stage);
+  document.getElementById('h-stage-name').textContent = stageName;
+  document.getElementById('h-stage-desc').textContent = getStageDesc(d.current_stage);
+  document.getElementById('h-stage-num').textContent = d.current_stage;
+  document.getElementById('h-stage-total').textContent = d.total_stages;
+
+  const pct = Math.round((d.current_stage / d.total_stages) * 100);
+  document.getElementById('h-progress').style.width = pct + '%';
+
+  // Dots
+  const dots = document.getElementById('h-dots');
+  dots.innerHTML = '';
+  for (let i = 1; i <= d.total_stages; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'stage-dot' + (i < d.current_stage ? ' done' : i === d.current_stage ? ' current' : '');
+    dots.appendChild(dot);
+  }
+
+  // Profile screen
+  document.getElementById('p-name').textContent = d.name;
+  document.getElementById('p-diag').textContent = d.diagnosis;
+  document.getElementById('p-stage').textContent = `Этап ${d.current_stage}: ${stageName}`;
+  if (d.operation_date) {
+    const dt = new Date(d.operation_date);
+    document.getElementById('p-opdate').textContent = dt.toLocaleDateString('ru-RU');
+    document.getElementById('p-opdate-row').style.display = 'flex';
+  }
+}
+
+function getStageShortName(n) {
+  return ['', 'Подготовка к операции', 'День операции', 'Первые дни', 'Восстановление'][n] || `Этап ${n}`;
+}
+function getStageDesc(n) {
+  return ['', 'Что сделать до операции', 'Операция позади — первые часы', 'Активная реабилитация', 'Возврат к привычной жизни'][n] || '';
+}
+
+// ── Recommendations ───────────────────────────────────
+
+async function loadRecs() {
+  document.getElementById('recs-loader').style.display = 'block';
+  document.getElementById('recs-content').style.display = 'none';
+  try {
+    const res = await fetch(`${API}/patient/${TELEGRAM_ID}/recommendations`);
+    if (!res.ok) throw new Error('not found');
+    const d = await res.json();
+    renderRecs(d);
+    recsLoaded = true;
+  } catch(e) {
+    document.getElementById('recs-loader').innerHTML =
+      '<div style="color:var(--danger)">Не удалось загрузить рекомендации</div>';
+  }
+}
+
+function renderRecs(d) {
+  document.getElementById('recs-loader').style.display = 'none';
+  document.getElementById('recs-content').style.display = 'block';
+  document.getElementById('r-num').textContent = d.stage_number;
+  document.getElementById('r-name').textContent = d.stage_name;
+  document.getElementById('r-desc').textContent = d.description || '';
+
+  const icons = ['💊','🚶','🩹','🌡️','🛁','🩺','📋','⚠️','🏃','📅'];
+  const list = document.getElementById('recs-list');
+  list.innerHTML = d.recommendations.map((r, i) => `
+    <div class="rec-item">
+      <div class="rec-icon">${icons[i % icons.length]}</div>
+      <div class="rec-text">${r}</div>
+    </div>
+  `).join('');
+}
+
+// ── Chat ──────────────────────────────────────────────
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q) return;
+
+  addMsg(q, 'user');
+  input.value = '';
+  input.style.height = '';
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+
+  const typing = addMsg('⋯', 'bot');
+
+  try {
+    const res = await fetch(`${API}/patient/${TELEGRAM_ID}/chat`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question: q}),
+    });
+    const d = await res.json();
+    typing.textContent = d.answer || 'Не удалось получить ответ.';
+  } catch(e) {
+    typing.textContent = 'Нет связи. Попробуйте позже.';
+  }
+
+  btn.disabled = false;
+  scrollChat();
+}
+
+function addMsg(text, role) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg msg-' + (role === 'user' ? 'user' : 'bot');
+  div.textContent = text;
+  msgs.appendChild(div);
+  scrollChat();
+  return div;
+}
+
+function scrollChat() {
+  const msgs = document.getElementById('chat-messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// Enter to send
+document.getElementById('chat-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// ── Init ──────────────────────────────────────────────
+loadHome();
+</script>
+</body>
+</html>
